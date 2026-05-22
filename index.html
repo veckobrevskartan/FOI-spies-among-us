@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spioner Mitt Ibland Oss — Svensk OSINT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0d0d0d;
+    --paper: #f5f0e8;
+    --paper-dark: #ede8df;
+    --red: #c0392b;
+    --red-dark: #922b21;
+    --gold: #b7924a;
+    --gold-light: #d4a96a;
+    --muted: #6b6560;
+    --border: #c8c0b0;
+    --code-bg: #1a1a2e;
+    --code-fg: #e8d5b7;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 17px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.6;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 8px 48px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-transform: uppercase;
+  }
+  .topbar-badge {
+    background: var(--red);
+    color: white;
+    padding: 2px 10px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 80px 48px 72px;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 39px,
+        rgba(255,255,255,0.03) 39px,
+        rgba(255,255,255,0.03) 40px
+      );
+    pointer-events: none;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .hero-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hero-label::after {
+    content: '';
+    display: block;
+    height: 1px;
+    width: 60px;
+    background: var(--gold);
+    opacity: 0.5;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(42px, 5.5vw, 76px);
+    font-weight: 900;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  .hero-subtitle {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: rgba(245,240,232,0.55);
+    font-style: italic;
+    margin-bottom: 32px;
+    font-weight: 400;
+  }
+
+  .hero-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: rgba(245,240,232,0.45);
+    letter-spacing: 0.08em;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .hero-meta span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hero-meta span::before {
+    content: '→';
+    color: var(--gold);
+    font-size: 10px;
+  }
+
+  /* SIDEBAR STATS */
+  .hero-stats {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 32px;
+    position: relative;
+  }
+
+  .hero-stats::before {
+    content: 'NYCKELDATA';
+    position: absolute;
+    top: -1px; left: 20px;
+    background: var(--red);
+    color: white;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    padding: 4px 12px;
+  }
+
+  .stat-item {
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .stat-item:last-child { border-bottom: none; }
+
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 44px;
+    font-weight: 700;
+    color: var(--gold-light);
+    line-height: 1;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: rgba(245,240,232,0.5);
+    text-transform: uppercase;
+  }
+
+  /* SECTION LAYOUT */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
+  section {
+    padding: 72px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-header {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    align-items: baseline;
+    margin-bottom: 48px;
+  }
+
+  .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--red);
+    letter-spacing: 0.12em;
+    padding-top: 6px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 3vw, 40px);
+    font-weight: 700;
+    line-height: 1.15;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 16px;
+  }
+
+  /* TWO-COLUMN TEXT */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+  }
+
+  p {
+    margin-bottom: 18px;
+    color: #1a1a1a;
+  }
+
+  /* PULL QUOTE */
+  .pull-quote {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--red-dark);
+    border-left: 3px solid var(--red);
+    padding: 12px 0 12px 28px;
+    margin: 32px 0;
+  }
+
+  /* CASE CARDS */
+  .cases-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .case-card {
+    background: var(--paper);
+    padding: 28px;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .case-card:hover {
+    background: var(--paper-dark);
+  }
+
+  .case-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--red);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .case-country {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 2px 8px;
+    letter-spacing: 0.15em;
+  }
+
+  .case-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  .case-card p {
+    font-size: 14px;
+    color: #3a3a3a;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .case-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .case-tag {
+    background: var(--paper-dark);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .case-tag.red { background: #fdecea; border-color: #f5c6c2; color: var(--red-dark); }
+  .case-tag.gold { background: #fdf6ec; border-color: #e8d4a8; color: #7a5a20; }
+
+  /* TYPOLOGY GRID */
+  .typology-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    background: var(--border);
+    margin-top: 8px;
+  }
+
+  .typology-card {
+    background: var(--paper);
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .typology-card::before {
+    content: attr(data-num);
+    position: absolute;
+    bottom: -10px;
+    right: 4px;
+    font-family: 'Playfair Display', serif;
+    font-size: 72px;
+    font-weight: 900;
+    color: rgba(0,0,0,0.04);
+    line-height: 1;
+  }
+
+  .typology-card h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .typology-card p {
+    font-size: 12px;
+    color: #4a4a4a;
+    line-height: 1.55;
+    margin-bottom: 12px;
+  }
+
+  .typology-traits {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    line-height: 1.7;
+  }
+
+  /* BAR CHART */
+  .bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 40px;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .bar-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    color: var(--ink);
+    text-align: right;
+  }
+
+  .bar-track {
+    height: 20px;
+    background: var(--paper-dark);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--ink);
+    transition: width 0.8s ease;
+    position: relative;
+  }
+
+  .bar-fill.russia { background: var(--red); }
+  .bar-fill.china { background: #c0782b; }
+  .bar-fill.other { background: var(--muted); }
+
+  .bar-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* ACTOR TABLE */
+  .intel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 24px;
+  }
+
+  .intel-table thead tr {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .intel-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 500;
+  }
+
+  .intel-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .intel-table tbody tr:nth-child(even) { background: var(--paper-dark); }
+  .intel-table tbody tr:hover { background: #ebe6dc; }
+
+  .intel-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--red-dark);
+  }
+
+  /* MICE SECTION */
+  .mice-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    background: var(--border);
+    margin-top: 24px;
+  }
+
+  .mice-card {
+    padding: 32px 24px;
+    position: relative;
+  }
+  .mice-card:nth-child(1) { background: #fdecea; }
+  .mice-card:nth-child(2) { background: #edf5e1; }
+  .mice-card:nth-child(3) { background: #e8edf7; }
+  .mice-card:nth-child(4) { background: #fdf6ec; }
+
+  .mice-letter {
+    font-family: 'Playfair Display', serif;
+    font-size: 72px;
+    font-weight: 900;
+    line-height: 1;
+    opacity: 0.15;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+  }
+
+  .mice-card h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .mice-subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .mice-card p {
+    font-size: 13px;
+    color: #3a3a3a;
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+
+  /* METHODS BOX */
+  .method-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 24px;
+  }
+
+  .method-category {
+    border: 1px solid var(--border);
+    padding: 24px;
+  }
+
+  .method-category h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .method-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .method-item::before {
+    content: '▸';
+    color: var(--red);
+    font-size: 10px;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  /* FINDINGS BOX */
+  .findings-box {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 40px 48px;
+    margin-top: 40px;
+    position: relative;
+  }
+
+  .findings-box::before {
+    content: 'ANALYTISK BEDÖMNING';
+    position: absolute;
+    top: -1px; left: 32px;
+    background: var(--red);
+    color: white;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    padding: 4px 14px;
+  }
+
+  .findings-box h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    margin-top: 16px;
+  }
+
+  .findings-box p {
+    color: rgba(245,240,232,0.8);
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  .findings-list {
+    list-style: none;
+    margin-top: 20px;
+  }
+
+  .findings-list li {
+    color: rgba(245,240,232,0.8);
+    font-size: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    line-height: 1.55;
+  }
+
+  .findings-list li::before {
+    content: '→';
+    color: var(--gold-light);
+    flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 1px;
+  }
+
+  /* TREND SECTION */
+  .trend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    margin-top: 32px;
+  }
+
+  .trend-card {
+    border-top: 3px solid var(--ink);
+    padding-top: 20px;
+  }
+
+  .trend-card h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .trend-card p {
+    font-size: 13.5px;
+    color: #3a3a3a;
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+
+  /* GEOGRAPHIC */
+  .country-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    background: var(--border);
+    margin-top: 24px;
+  }
+
+  .country-item {
+    background: var(--paper);
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+  }
+
+  .country-item:hover { background: var(--paper-dark); }
+
+  .country-name {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+  }
+
+  .country-count {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--red);
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--ink);
+    color: rgba(245,240,232,0.6);
+    padding: 48px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+  }
+
+  .footer-brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--paper);
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-bottom: 12px;
+  }
+
+  .footer-disclaimer {
+    font-size: 11px;
+    line-height: 1.8;
+    color: rgba(245,240,232,0.45);
+  }
+
+  .footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .footer-links a {
+    color: var(--gold);
+    text-decoration: none;
+    font-size: 11px;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--gold-light); }
+
+  /* READING NAV */
+  .toc {
+    background: var(--paper-dark);
+    border: 1px solid var(--border);
+    padding: 32px;
+    margin-bottom: 48px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .toc-title {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .toc a {
+    display: block;
+    font-size: 12px;
+    color: var(--ink);
+    text-decoration: none;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    transition: color 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .toc a:hover { color: var(--red); }
+  .toc a:last-child { border-bottom: none; }
+
+  .toc-num {
+    color: var(--red);
+    margin-right: 10px;
+  }
+
+  /* INTRO BLOCK */
+  .intro-block {
+    padding: 48px 0 40px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 0;
+  }
+
+  .intro-lead {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(20px, 2.5vw, 26px);
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.55;
+    color: #222;
+    margin-bottom: 32px;
+    max-width: 800px;
+  }
+
+  /* INLINE ANNOTATION */
+  .annot {
+    display: inline-block;
+    background: #fdecea;
+    border: 1px solid #f5c6c2;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--red-dark);
+    padding: 1px 6px;
+    letter-spacing: 0.08em;
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+
+  /* DIVIDER */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 40px 0;
+  }
+
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .divider-symbol {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--muted);
+  }
+
+  /* WIDE CASE */
+  .wide-case {
+    background: var(--paper-dark);
+    border-left: 4px solid var(--red);
+    padding: 28px 32px;
+    margin: 24px 0;
+  }
+
+  .wide-case-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .wide-case h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .wide-case p {
+    font-size: 14px;
+    line-height: 1.65;
+    color: #2a2a2a;
+    margin-bottom: 0;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .cases-grid { grid-template-columns: 1fr; }
+    .typology-grid { grid-template-columns: repeat(2, 1fr); }
+    .mice-grid { grid-template-columns: 1fr 1fr; }
+    .country-list { grid-template-columns: repeat(2, 1fr); }
+    .trend-grid { grid-template-columns: 1fr; }
+    .method-list { grid-template-columns: 1fr; }
+    .container { padding: 0 24px; }
+    .hero { padding: 48px 24px; }
+    footer { padding: 32px 24px; }
+    .footer-inner { grid-template-columns: 1fr; }
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero h1, .hero-subtitle, .hero-meta {
+    animation: fadeInUp 0.8s ease forwards;
+  }
+  .hero h1 { animation-delay: 0.1s; }
+  .hero-subtitle { animation-delay: 0.25s; }
+  .hero-meta { animation-delay: 0.4s; }
+  .hero-stats { animation: fadeInUp 0.8s ease 0.3s forwards; opacity: 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span>SVENSK OSINT — ANALYTISK RAPPORT</span>
+  <span class="topbar-badge">ÖPPEN KÄLLDATA</span>
+  <span>FOI-R--5866--SE · JANUARI 2026</span>
+</div>
+
+<div class="hero">
+  <div class="hero-grid">
+    <div>
+      <div class="hero-label">Illustrerad av Svensk OSINT</div>
+      <h1>"Spioner Mitt<br>Ibland <em>Oss</em>"</h1>
+      <div class="hero-subtitle">Spionage i Europa 2008–2024</div>
+      <div class="hero-meta">
+        <span>Källa: FOI-R--5866--SE, Elina Elveborg Lindskog m.fl., januari 2026</span>
+        <span>Beställare: SÄPO, FRA, MUST</span>
+        <span>Analysformat: Öppna källor, 70 dömda individer, 20 länder</span>
+        <span>Metod: Kvantitativ datakodning + 10 expertintervjuer</span>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-num">70</span>
+        <span class="stat-label">Dömda spioner identifierade</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">20</span>
+        <span class="stat-label">Länder med fällande domar</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">47</span>
+        <span class="stat-label">Fall initierade av Ryssland</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">10</span>
+        <span class="stat-label">Identifierade spiontypologier</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="intro-block">
+    <p class="intro-lead">En genomgång av 70 öppna fall av dömda spioner i Europa avslöjar ett spionagelandskap som är mer komplext, diffust och socialt rotat än det klassiska bilden av den hemlige insider med säkerhetsklassad tjänst.</p>
+    <div class="two-col">
+      <div>
+        <p>Rapporten "Spies Among Us", producerad av FOI på uppdrag av Säkerhetspolisen, FRA och MUST, utgör den hittills mest systematiska öppenkällbaserade kartläggningen av europeiska spionagefall i den moderna eran. Perioden 2008–2024 täcker allt från post-Kalla Krigets normaliseringslogik till Rysslands fullskaliga invasion av Ukraina 2022 — en händelse som fundamentalt omformade underrättelsehotets karaktär och volym.</p>
+        <p>Det centrala fyndet är inte att spionage sker, utan <em>hur</em> det sker: rekryteringspoolen har utvidgats dramatiskt, motivbilden är mångfacetterad långt bortom penningbegär, och metoderna kombinerar klassisk HUMINT-tradecraft med digitala rekryteringskanaler, krypterade kommunikationsplattformar och social-media-orienterade massrekryteringskampanjer.</p>
+      </div>
+      <div>
+        <p>Studien bygger på öppna källor om dömda individer — ett medvetet metodval som möjliggör öppen publicering men som också innebär att analysen rör sig i toppen av ett isberg. Spionage är ett "discovery crime": det man söker efter är det man finner. Länder med låga konviktionssiffror behöver inte ha lite spionage — de kan ha låg kontraunderrättelsekapacitet, svag lagstiftning, eller en politisk preferens för diplomatiska lösningar framför rättegång.</p>
+        <p>Rapporten identifierar Ryssland som den klart dominerande antagonistiska aktören med 47 av 70 fall, följt av Kina (6), Iran (3) och Turkiet (3). Baltikum — och Estland i synnerhet — uppvisar den högsta konviktionsfrekvensen i Europa, vilket reflekterar både hög hotexponering och en stark rättslig och kontraunderrättelseinfrastruktur.</p>
+      </div>
+    </div>
+
+    <div class="toc">
+      <div class="toc-title">Innehållsförteckning</div>
+      <a href="#geografisk"><span class="toc-num">01</span> Geografisk fördelning — vem dömer flest spioner?</a>
+      <a href="#aktorer"><span class="toc-num">02</span> Rekryterande aktörer — Ryssland som definierande hot</a>
+      <a href="#rekryterade"><span class="toc-num">03</span> Vem rekryteras? Profil, ålder, kön och bakgrund</a>
+      <a href="#motiv"><span class="toc-num">04</span> Motiv — MICE och dess moderna tillägg</a>
+      <a href="#rekrytering"><span class="toc-num">05</span> Rekryteringsmetoder — klassiska och digitala</a>
+      <a href="#mal"><span class="toc-num">06</span> Spionagemål — militärt, politiskt, infrastrukturellt</a>
+      <a href="#typologier"><span class="toc-num">07</span> Tio spiontypologier</a>
+      <a href="#fall"><span class="toc-num">08</span> Utvalda fallstudier</a>
+      <a href="#slutsatser"><span class="toc-num">09</span> Slutsatser och analytisk bedömning</a>
+    </div>
+  </div>
+
+  <!-- SECTION 01: GEOGRAFISK -->
+  <section id="geografisk">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2 class="section-title">Geografisk fördelning — vem dömer flest spioner?</h2>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p>Den geografiska fördelningen av fällande domar är kraftigt snedvriden. Estland toppar med 19 fall, följt av Tyskland (8) och Nordmakedonien (8, varav de flesta relaterade till ett enda spionagenettverk med okänd uppdragsgivare). Baltikum — Estland, Litauen (7), Lettland (6) — är sammantaget kraftigt överrepresenterade.</p>
+        <p>Sverige återfinns med tre fall, i nivå med Grekland. Flertalet västeuropeiska länder har ett eller två fall. Tretton av 33 undersökta EU/NATO-länder saknar helt fällande domar under den studerade perioden.</p>
+        <div class="pull-quote">"Det slående är inte att Estland har 19 fall — utan att Belgien, EU-förvaltningens centrum, har två. Det säger mer om rättsliga strategier och kontraunderrättelsekultur än om faktisk spionagefrekvens."</div>
+      </div>
+      <div>
+        <p>Frånvaro av konviktioner ska inte tolkas som frånvaro av spionage. Faktorer som förklarar låga siffror i Västeuropa inkluderar: diplomatiska lösningar framför rättegång, lagstiftningsgap, lägre prioritet på kontraunderrättelsekapacitet, och det faktum att spionage som riktas mot EU-institutioner i Bryssel kan hanteras utan nationella rättsprocesser.</p>
+        <p>Studien noterar att Sherlock Holmes-logiken är tillämplig: det är hunden som inte skäller som är intressant — länder med noll konviktioner är potentiellt mer problematiska än de som aktivt dömer spioner.</p>
+      </div>
+    </div>
+
+    <div class="country-list">
+      <div class="country-item"><span class="country-name">Estland</span><span class="country-count">19</span></div>
+      <div class="country-item"><span class="country-name">Nordmakedonien</span><span class="country-count">8</span></div>
+      <div class="country-item"><span class="country-name">Tyskland</span><span class="country-count">8</span></div>
+      <div class="country-item"><span class="country-name">Litauen</span><span class="country-count">7</span></div>
+      <div class="country-item"><span class="country-name">Lettland</span><span class="country-count">6</span></div>
+      <div class="country-item"><span class="country-name">Sverige</span><span class="country-count">3</span></div>
+      <div class="country-item"><span class="country-name">Grekland</span><span class="country-count">3</span></div>
+      <div class="country-item"><span class="country-name">Storbritanien</span><span class="country-count">2</span></div>
+      <div class="country-item"><span class="country-name">Polen</span><span class="country-count">2</span></div>
+      <div class="country-item"><span class="country-name">Frankrike</span><span class="country-count">2</span></div>
+      <div class="country-item"><span class="country-name">Belgien</span><span class="country-count">2</span></div>
+      <div class="country-item"><span class="country-name">Spanien</span><span class="country-count">1–2</span></div>
+    </div>
+  </section>
+
+  <!-- SECTION 02: AKTÖRER -->
+  <section id="aktorer">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2 class="section-title">Rekryterande aktörer — Ryssland som definierande hot</h2>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p>Ryssland är utan tvekan den dominerande antagonistiska aktören i det europeiska spionagerumsmet. 47 av 70 dokumenterade fall härrör från ryska underrättelsetjänster — en andel som reflekterar både Rysslands geografiska och historiska närvaro i Europa och dess offensiva underrättelsepostur.</p>
+        <p>GRU/GU (Militär underrättelsetjänst) är den mest aktiva enskilda organisationen med 17 identifierade fall, tätt följt av FSB (14) och SVR (6). Det är värt att notera att GRU — ursprungligen inriktat på militärt SIGINT och HUMINT — uppvisar en bredare verksamhetsprofil i materialet än vad som traditionellt förknippas med militär underrättelsetjänst. GRU:s operationer inkluderar allt från rekrytering av smugglare på den estnisk-ryska gränsen till infiltration av västerländska försvarsministerier.</p>
+      </div>
+      <div>
+        <p>Kinas MSS och PLA:s underrättelsebyrå finns representerade i sex fall, med ett tydligt fokus på teknologi, marininfrastruktur och akademiska nätverk. Iranska MOIS och IRGC svarar för tre fall var, med inriktning på teknologi, försvarsunderrättelse och — i ett fall — en brittisk-iransk medborgare rekryterad via Facebook vid 17 års ålder.</p>
+        <p>Turkiets MIT förekommer i tre fall i materialet, samtliga rörande militärinformation om regionala konflikter och grannstatens (Greklands) militära kapacitet — inklusive koordinater till baser och fotografering av Frontex-operationer.</p>
+        <div class="pull-quote">"Det är inte en sträckning att konstatera att Ryssland är det definierande spionagehotet i Europa idag." — FOI-rapporten</div>
+      </div>
+    </div>
+
+    <div class="bar-chart">
+      <div class="bar-row">
+        <span class="bar-label">Ryssland</span>
+        <div class="bar-track"><div class="bar-fill russia" style="width:67%"></div></div>
+        <span class="bar-count">47</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Kina</span>
+        <div class="bar-track"><div class="bar-fill china" style="width:8.5%"></div></div>
+        <span class="bar-count">6</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Iran</span>
+        <div class="bar-track"><div class="bar-fill other" style="width:4.3%"></div></div>
+        <span class="bar-count">3</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Turkiet</span>
+        <div class="bar-track"><div class="bar-fill other" style="width:4.3%"></div></div>
+        <span class="bar-count">3</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Vitryssland</span>
+        <div class="bar-track"><div class="bar-fill other" style="width:2.8%"></div></div>
+        <span class="bar-count">2</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Okänd (Nordmak.)</span>
+        <div class="bar-track"><div class="bar-fill other" style="width:11.4%"></div></div>
+        <span class="bar-count">8</span>
+      </div>
+    </div>
+
+    <table class="intel-table" style="margin-top:32px;">
+      <thead>
+        <tr>
+          <th>Organisation</th>
+          <th>Land</th>
+          <th>Antal fall</th>
+          <th>Primär inriktning</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>GRU / GU</td><td>Ryssland</td><td>17</td><td>Militär, försvarsinfrastruktur, politisk underrättelse</td></tr>
+        <tr><td>FSB</td><td>Ryssland</td><td>14</td><td>Gränsrekrytering, kriminella nätverk, kontraunderrättelse</td></tr>
+        <tr><td>SVR</td><td>Ryssland</td><td>6</td><td>Politisk och strategisk underrättelse</td></tr>
+        <tr><td>PLA Joint Intelligence Bureau</td><td>Kina</td><td>2</td><td>Militär HUMINT, marininfrastruktur</td></tr>
+        <tr><td>MSS (Guoanbu)</td><td>Kina</td><td>2</td><td>Teknologi, akademiska nätverk</td></tr>
+        <tr><td>MOIS</td><td>Iran</td><td>2</td><td>Teknik, elektronik, diasporakartläggning</td></tr>
+        <tr><td>IRGC</td><td>Iran</td><td>1</td><td>Militär underrättelse</td></tr>
+        <tr><td>MIT</td><td>Turkiet</td><td>1</td><td>Regionala militärkonflikter, grannstaters kapacitet</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SECTION 03: REKRYTERADE -->
+  <section id="rekryterade">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2 class="section-title">Vem rekryteras? Profil, ålder, kön och bakgrund</h2>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p>Materialet bekräftar att spionage är en nästan uteslutande manlig domän: av 70 fall är endast fyra kvinnor. Tre av dessa var gifta med en medspion. En av kvinnorna är det enda fall där det är uppenbart att en kvinna agerade pådrivande och självständigt rekryterade en annan person.</p>
+        <p>Medelåldern vid fällande dom är 48 år, med ett spann från 21 till 82 år. Tolv individer i materialet var 25 år eller yngre när spionaget inleddes — åtta var 55 år eller äldre. Spionage är med andra ord inte en ungdomsföreteelse, och inte heller exklusivt förknippad med en specifik livsfas.</p>
+      </div>
+      <div>
+        <p>Nästan hälften av fallen (30 av 70) involverar en traditionell insider — en person anställd inom klassificerad verksamhet med tillgång till sekretessbelagd information. Men en stor del av materialet utgörs av "icke-insiders": civila medborgare rekryterade för fotografering av byggnader, militäranläggningar eller truppöverföringar, ofta utan djupare förståelse för uppdragets underrättelsekaraktär.</p>
+        <p>Ungefär en tredjedel (21 individer) samarbetade med minst en annan person vid utförandet av spionaget — det handlar om gifta par, familjemedlemmar, kollegor och i ett fall ett formellt spionagenätverk. Nio individer i materialet hade även dömts för andra brott, såsom smuggling eller sabotage.</p>
+      </div>
+    </div>
+
+    <div class="divider"><span class="divider-symbol">§</span></div>
+
+    <div class="wide-case">
+      <div class="wide-case-label">Fallstudie: Gränsrekrytering <span class="case-country">Estland</span></div>
+      <h4>Fall 5, 8 och 9 — Smugglare rekryterade av FSB</h4>
+      <p>Tre estländska män, födda 1992, 1993 och 1994, startade sitt spionage för FSB vid 19, 20 respektive 21 års ålder. De kände inte varandra, men delade en gemensam sårbarhet: de verkade som smugglare längs gränsen mellan Estland och Ryssland — allt från cigaretter till människor. FSB kunde tvinga dem att samarbeta som alternativ till fängelse i Ryssland. Uppdraget var att bidra till destabilisering av NATO. Det är ett skolboksexempel på hur kriminell exponering används som hävstång i rekryteringsprocessen, och hur gränsregioner med informella ekonomier skapar strukturella rekryteringsytor för fientliga underrättelsetjänster.</p>
+    </div>
+
+    <div class="wide-case">
+      <div class="wide-case-label">Fallstudie: Honeytrap-rekrytering <span class="case-country">Estland</span></div>
+      <h4>Fall 14 — Estnisk arméofficer fångad i konstruerad våldtäktsanklage</h4>
+      <p>En major i den estniska armén dömdes till 15,5 års fängelse för att ha arbetat åt GRU. Han lockades in i ett romantiskt möte under en semesterresa till Ryssland, varefter han anklagades för våldtäkt. Han fick besked om att han skulle friges om han gick med på att samarbeta. Inledningsvis handlade det om till synes harmlös information — men kraven eskalerade i takt med hans karriärutveckling. Hans specialistkunskap om artilleri och inblickar i NATO:s, Storbritanniens och USA:s stöd till Estland var vid fångenskapens slut av stort underrättelsevärde. Fallet illustrerar den klassiska eskaleringslogiken: vad som börjar som en liten förfrågan växer gradvis till djupgående förräderi.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 04: MOTIV -->
+  <section id="motiv">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2 class="section-title">Motiv — MICE och dess moderna tillägg</h2>
+    </div>
+
+    <p style="max-width:800px; margin-bottom: 32px;">Det klassiska MICE-ramverket (Money, Ideology, Coercion, Ego) håller fortsatt — men materialet visar att motivbilden sällan är enkel eller endimensionell. Mer än hälften av individerna (41 av 70) har tagit emot ekonomisk ersättning, men ekonomisk kompensation behöver inte innebära att ekonomisk motivation är den primära drivkraften.</p>
+
+    <div class="mice-grid">
+      <div class="mice-card">
+        <span class="mice-letter">M</span>
+        <h4>Money</h4>
+        <div class="mice-subtitle">Pengar · 41/70 mottog ersättning</div>
+        <p>Finansiell motivation spänner från renodlad girighet till ekonomisk nöd. I ett fall betalades de svenska bröderna (fall 67–68) mer än 100 000 euro av GRU, alltid i kontanta US-dollar. En italiensk marinkapten sålde NATO-dokument sedan familjen drabbats hårt av pandemin. Enstaka spioner fick under 2 000 euro per uppdrag. Pengar är den vanligast dokumenterade faktorn — men sällan den enda.</p>
+      </div>
+      <div class="mice-card">
+        <span class="mice-letter">I</span>
+        <h4>Ideology</h4>
+        <div class="mice-subtitle">Ideologi · Pro-rysk lojalitet dominerar</div>
+        <p>Ideologisk motivation är särskilt framträdande i Baltikum, där ryskspråkiga medborgare med kulturell och familjebaserad lojalitet till Ryssland utgör en återkommande rekryteringsyta. En lettisk man (fall 24) samlade aktivt in underrättelser för en pro-rysk Telegramkanal kallad "Baltic Anti-Fascists". En litauisk man (fall 28) propagerade för pro-ryska narrativ i ett politiskt parti samtidigt som han levererade underrättelse till ryska kontakter.</p>
+      </div>
+      <div class="mice-card">
+        <span class="mice-letter">C</span>
+        <h4>Coercion</h4>
+        <div class="mice-subtitle">Tvång · Utpressning och falska anklagelser</div>
+        <p>Tvång förekommer i materialet som utpressning via compromat, falska brottsanklagelser och eskalerande krav. Estländare med familj på rysk sida av gränsen rapporteras ha blivit kontaktade av FSB som erbjudit smidigare gränspassager i utbyte mot information. Grindr och andra appar nämns av intervjupersoner som verktyg för kartläggning av individers sårbarheter inför kompromiss.</p>
+      </div>
+      <div class="mice-card">
+        <span class="mice-letter">E</span>
+        <h4>Ego</h4>
+        <div class="mice-subtitle">Ego · Missnöje, revansch och erkännande</div>
+        <p>En underskattad men återkommande faktor. En estländsk spion (fall 1) motiverades primärt av kränkt stolthet: "De ville inte ha mig. De skrattade åt mig." En svensk säkerhetsanställd (fall 67) drevs av ett uttalat behov av erkännande och en övertygelse om att vara ämnad för något bättre. En ung tysk BND-anställd (fall 47) sökte spänning och uppskattning — han tillbringade sin tid med CIA och när det kändes tamt erbjöd han sina tjänster till det ryska konsulatet.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 05: REKRYTERING -->
+  <section id="rekrytering">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2 class="section-title">Rekryteringsmetoder — klassiska och digitala</h2>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p>I majoriteten av fallen (33 individer) rekryterades spionen av utomstående — inte sökte kontakt själv. Elva individer var "walk-ins" som erbjöd sina tjänster frivilligt. Hälften rekryterades via en underrättelsetjänst; av dessa skedde rekryteringen via en utländsk agent (19 fall) eller en utländsk ambassad (17 fall).</p>
+        <p>Den klassiska rekryteringsprocessen är långsam och relationell: handler och måltavla möts upprepade gånger i lågriskkontexter — middagar, konferenser, informella möten — tills förtroende är etablerat och det första steget mot samarbete kan tas. En svensk spion (fall 66) hade regelbundna middagsmöten med sin ryske handläggare, med fasta mötestider och backup-tider. Ingen kontakt förekom däremellan.</p>
+      </div>
+      <div>
+        <p>Parallellt med dessa klassiska metoder har digitala rekryteringskanaler expanderat dramatiskt. Telegram används av ryska tjänster för att nå ryskspråkiga européer med ideologisk sympati. "Privet Bot" — en Telegrambot med koppling till rysk underrättelse — rekryterade europeiska medborgare och erbjöd upp till 10 000 USD i kryptovaluta för uppdrag som inkluderade fotografering av NATO-anläggningar och sabotage av oljedepåer.</p>
+        <p>LinkedIn nämns av tyska BfV som ett verktyg som Kina använt för att kontakta över 10 000 tyska medborgare, där kinesiska underrättelseofficerare uppträtt som akademiker, konsulter och experter. Under COVID-19 accelererade plattformsskiftet från fysiska möten till digitala kontaktytor — isoleringen skapade också ökad psykologisk sårbarhet.</p>
+      </div>
+    </div>
+
+    <div class="method-list">
+      <div class="method-category">
+        <h4>Klassiska rekryteringsmetoder</h4>
+        <div class="method-item">Relationsutveckling över tid via agent/handler</div>
+        <div class="method-item">Rekrytering via ambassadnätverk och diplomatisk täckmantel</div>
+        <div class="method-item">Honeytrap — romantiska relationer som komprometteringsverktyg</div>
+        <div class="method-item">Utpressning via belastande information (kompromat)</div>
+        <div class="method-item">False flag — måltavlan tror sig arbeta för en annan organisation</div>
+        <div class="method-item">Gradvis eskalering av uppdragens karaktär och allvarlighetsgrad</div>
+        <div class="method-item">Rekrytering via familjemedlemmar eller kollegor</div>
+      </div>
+      <div class="method-category">
+        <h4>Moderna och digitala metoder</h4>
+        <div class="method-item">Telegram-kanaler och automatiserade rekryteringsbottar</div>
+        <div class="method-item">LinkedIn-kontakt under akademisk eller konsultidentitet</div>
+        <div class="method-item">Sociala medier för kartläggning av personliga sårbarheter (Grindr m.fl.)</div>
+        <div class="method-item">Kryptovalutabetalningar för enstaka uppdrag</div>
+        <div class="method-item">Rekrytering via kriminella nätverk som subkontraktörer</div>
+        <div class="method-item">Dataintrång mot statliga register som skapar rekryteringslistor</div>
+        <div class="method-item">AI-genererade personas för emotionella honeytraps</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 06: MÅL -->
+  <section id="mal">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2 class="section-title">Spionagemål — militärt, politiskt, infrastrukturellt</h2>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p>Stater som ägnar sig åt spionage uppvisar en bred och opportunistisk informationsappetit. Rapporten karakteriserar Ryssland som ett "omnivore" — en aktör som aldrig utesluter någon informationskategori. Materialet visar att militär information dominerar (19 fall med tydlig militär inriktning), men att det återfinns underrättelseinsamling mot ett brett spektrum av mål.</p>
+        <p>I ljuset av Rysslands fullskaliga invasion av Ukraina har tyngdpunkten förskjutits mot operativ och taktisk underrättelse: trupppositioner, vapenleveranser, stödnationer och sanktionsbedömning. Nordiska NATO-anslutningar (Finland 2023, Sverige 2024) bedöms kunna öka ryskt intresse för den nordiska regionen framöver.</p>
+      </div>
+      <div>
+        <p>Kritisk infrastruktur är ett allt viktigare insamlingsområde. Energiinfrastruktur i Polen, Baltikum och Tyskland flaggas i materialet, liksom transportsystem och kommunikationsnoder. Specialister med djupgående kunskap om infrastruktur är attraktiva mål — och återfinns ofta i privatsektorn, med uppdrag hos flera organisationer.</p>
+        <p>Ett underutnyttjat men analytiskt viktigt fynd är att "oskyldig" information — offentliga databaser, personallistor, arbetsrutiner — återkommande efterfrågas av ryska tjänster. En estländsk intervjuperson tolkade detta som del av en stegvis rekryteringsstrategi, men betonade att all information som skyddar sig mot fiende är värdefull och att "det är omöjligt att i förhand avgöra vad som kan komma att bli viktigt."</p>
+      </div>
+    </div>
+
+    <div class="trend-grid">
+      <div class="trend-card">
+        <h4>Militär &amp; NATO-inriktad</h4>
+        <p>Truppsamlingar, vapensystem, koordinater till baser, operationsplaner, logistikflöden, stödnationernas kapacitet. Tyskar pekas ut som logistikrum för Ukrainastöd. Danska sanktionsöverväganden är föremål för rysk underrättelseinsamling.</p>
+      </div>
+      <div class="trend-card">
+        <h4>Politisk &amp; strategisk</h4>
+        <p>Nationella relationer till Ryssland, sanktionspolitik, positioner i internationella forum (FN, ICC, BRICS). Syftet är att identifiera länder Ryssland kan förlita sig på och de som behöver influenseras.</p>
+      </div>
+      <div class="trend-card">
+        <h4>Infrastruktur &amp; teknik</h4>
+        <p>Energisystem (gas, olja, elnät), transportinfrastruktur, kommunikationsnoder. Dual-use-teknik — produkter med både civila och militära tillämpningar — är ett prioriterat kinesiskt och ryskt intresseområde. Elektriker i Bundestag (fall 46) hade tillgång till eluttag och planritningar i hela parlamentsbyggnaden.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 07: TYPOLOGIER -->
+  <section id="typologier">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2 class="section-title">Tio spiontypologier</h2>
+    </div>
+
+    <p style="max-width:800px; margin-bottom:32px;">Rapporten utökar den tidigare studiens fem typologier (Jonsson &amp; Gustafsson 2022) till tio icke-exklusiva kategorier. Typologierna fungerar som analytiska byggblock — en individ kan falla under flera kategorier simultaneously, och en spion kan byta typologi över tid i takt med att relationen till uppdragsgivaren fördjupas.</p>
+
+    <div class="typology-grid">
+      <div class="typology-card" data-num="1">
+        <h4>Den Traditionella Insidern</h4>
+        <p>Anställd inom klassificerad verksamhet med tillgång till sekretessbelagd information. Militär, underrättelseorganisation, departement eller ambassad. 30 av 70 fall i materialet. Den dominerande kategorin.</p>
+        <div class="typology-traits">Inre · Expert · Upprepade akter · Medveten</div>
+      </div>
+      <div class="typology-card" data-num="2">
+        <h4>Ideologen</h4>
+        <p>Motiverad av politisk övertygelse, nationalism eller lojalitet till ett land. Vanlig i länder med historiska band till Sovjet eller Ryssland. Ofta självrekryterad.</p>
+        <div class="typology-traits">Självrekryterad · Villig · Altruistisk</div>
+      </div>
+      <div class="typology-card" data-num="3">
+        <h4>Observatören</h4>
+        <p>Rekryterad för övervakning och fotografering — av baser, hamnar, truppförflyttningar, militär utrustning. Kräver ingen insiderposition. Vanlig rekryteringskanal: Telegram.</p>
+        <div class="typology-traits">Yttre · Icke-expert · Egenintresse</div>
+      </div>
+      <div class="typology-card" data-num="4">
+        <h4>Den Engångsbara</h4>
+        <p>Rekryterad för ett eller ett fåtal uppdrag. Ofta omedveten om att uppdraget är spionage. Inspirerat av gigekonomins logik — lättrekryterad, svår att spåra, enkel att avveckla.</p>
+        <div class="typology-traits">Yttre · Enstaka akt · Ibland omedveten</div>
+      </div>
+      <div class="typology-card" data-num="5">
+        <h4>Mellanhanden</h4>
+        <p>Logistiker snarare än informationsinsamlare. Agerar som kurir, förmedlar pengar eller material. Den yngre svenske brodern (fall 68) är ett illustrativt fall. Kan vara omedveten eller motvillig.</p>
+        <div class="typology-traits">Yttre · Ibland motvillig · Med partner</div>
+      </div>
+      <div class="typology-card" data-num="6">
+        <h4>Multibrotten</h4>
+        <p>Individer som utöver spionage begår andra brott — sabotage, desinformation, våldshandlingar. Speglar hybridoperationernas sammansatta karaktär, där en agent tjänar flera syften.</p>
+        <div class="typology-traits">Yttre · Ska skada</div>
+      </div>
+      <div class="typology-card" data-num="7">
+        <h4>Specialisten</h4>
+        <p>Sammanslagning av "byråkraten" och "teknikern" från tidigare forskning. Icke-militära/icke-underrättelse individer med tillgång via yrket: tolk, elektriker, IT-konsult, akademiker.</p>
+        <div class="typology-traits">Expert · Yttre klassificerad miljö</div>
+      </div>
+      <div class="typology-card" data-num="8">
+        <h4>Den Mobila Spionen</h4>
+        <p>Aktörer utan nationell koppling till operationsområdet — rör sig över gränser och jurisdiktioner. Utnyttjar Schengen-rörelsefrihet. En bulgarisk spionring i Storbritannien 2025 är ett nytt, illustrativt exempel.</p>
+        <div class="typology-traits">Yttre · Utan koppling · Rörlig</div>
+      </div>
+      <div class="typology-card" data-num="9">
+        <h4>Den Kopplade Agenten</h4>
+        <p>Rekryteras via kulturella, familjemässiga, religiösa eller historiska band till den antagonistiska staten. Används av Kina via ortodoxa kyrkan och diaspora-nätverk. Etniska greker med band till Ryssland.</p>
+        <div class="typology-traits">Kulturell/familjär koppling</div>
+      </div>
+      <div class="typology-card" data-num="10">
+        <h4>Spionagenätverket</h4>
+        <p>Koordinerade grupper. Rapporten identifierar ett formellt nätverk (Nordmakedonien, 8 dömda). Men nätverksmodellen håller på att förändras: allt mer distribuerade, digitalt koordinerade strukturer utan hierarkisk ledning.</p>
+        <div class="typology-traits">Upprepade akter · Med partner(s)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 08: FALLSTUDIER -->
+  <section id="fall">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2 class="section-title">Utvalda fallstudier</h2>
+    </div>
+
+    <div class="cases-grid">
+      <div class="case-card">
+        <div class="case-num">Fall 67 <span class="case-country">Sverige</span></div>
+        <h3>Livstidsdom för grov spioneri — bredast möjliga tillgång</h3>
+        <p>En svensk man dömdes till livstids fängelse för grov spioneri. Han hade arbetat på Säkerhetspolisen, Militära underrättelse- och säkerhetstjänsten och sedermera som säkerhetsansvarig på Livsmedelsverket. Denna karriärväg gav honom exceptionellt bred tillgång till topphemligheter. Han öppnade klassificerade dokument som han inte behövde för sina arbetsuppgifter, fotograferade eller printade dem, och använde krypteringsprogram som TrueCrypt och VeraCrypt för att dölja aktiviteten.</p>
+        <div class="case-meta">
+          <span class="case-tag red">GRU</span>
+          <span class="case-tag gold">Insider</span>
+          <span class="case-tag">Ekonomisk motiv</span>
+          <span class="case-tag">Egomotiv</span>
+        </div>
+      </div>
+
+      <div class="case-card">
+        <div class="case-num">Fall 68 <span class="case-country">Sverige</span></div>
+        <h3>Den äldre brodern — dead drop i bibliotekstoalett</h3>
+        <p>Äldre bror till fall 67. Studiens material innehåller anteckningar om "flyktväg", "backup-plan" och "rörelsedetektor". En klassisk dead drop-metod användes: kuvert gömda bakom kakelplattor i taket på en bibliotekstoalett. GRU betalade mer än 100 000 euro sammantaget — alltid i kontanta US-dollar. Den äldre brodern tog 80 procent; den yngre fick 20. Den yngre brodern noterade i sina anteckningar: "Jag vill att han ska ha ett fint liv, men jag kan förbaskat inte riskera att hamna i fängelse."</p>
+        <div class="case-meta">
+          <span class="case-tag red">GRU</span>
+          <span class="case-tag">Dead drop</span>
+          <span class="case-tag gold">Familjekoppling</span>
+        </div>
+      </div>
+
+      <div class="case-card">
+        <div class="case-num">Fall 1 <span class="case-country">Estland</span></div>
+        <h3>F.d. KGB-officer lämnar NATO-hemligheter i tio år</h3>
+        <p>En estländsk man, tidigare sovjet-kolonel, avancerade till chef för säkerhetsavdelningen i Försvarsministeriet efter Estlands självständighet 1991. Han arresterades 2008 tillsammans med sin hustru. Motivationen var primärt kränkt stolthet snarare än pengar: "De ville inte ha mig. De skrattade åt mig." I mer än tio år överlämnade han allt han kom över — fotocopior eller bilder av dokument — till sin ryske handler. Filmrullar gömdes i ihopskrynklade dryckesförpackningar och kastades i parkpapperskorgar. Handler och spion möttes 16 gånger i tio olika länder.</p>
+        <div class="case-meta">
+          <span class="case-tag red">SVR</span>
+          <span class="case-tag gold">Insider</span>
+          <span class="case-tag">Egomotiv</span>
+          <span class="case-tag">Dead drop</span>
+        </div>
+      </div>
+
+      <div class="case-card">
+        <div class="case-num">Fall 52 <span class="case-country">Italien</span></div>
+        <h3>Marinkapten säljer NATO-dokument — familjens ekonomi kollapsade under pandemin</h3>
+        <p>En italiensk marinkapten dömdes till 20 års fängelse för att ha sålt NATO-dokument till GRU. Enligt uppgifter var motivet inte ideologiskt utan ekonomiskt — familjens ekonomi hade drabbats hårt av COVID-19-pandemin. Hans fru bekräftade detta i vittnesmål. Fallet illustrerar hur en tillfällig ekonomisk kris kan fungera som en rekryteringsöppning, och hur den klassiska finansiella motiveringen inom MICE-modellen kan aktiveras av yttre omständigheter snarare än av ett grundläggande karaktärsfel.</p>
+        <div class="case-meta">
+          <span class="case-tag red">GRU</span>
+          <span class="case-tag gold">Militär insider</span>
+          <span class="case-tag">Ekonomisk motiv</span>
+        </div>
+      </div>
+
+      <div class="case-card">
+        <div class="case-num">Fall 70 <span class="case-country">Storbritanien</span></div>
+        <h3>17-årig brittisk-iranier rekryteras via Facebook av IRGC</h3>
+        <p>Den yngsta i materialet. En brittisk pojke med libanesisk far och iranskfödd mor erbjöd sina tjänster till IRGC via Facebook och andra sociala mediegrupper. Han var besviken efter att ha nekats hög säkerhetsklassering för specialförband på grund av sitt iranska arv. Fallet kombinerar frivilligt åtagande med ideologisk och emotionell mottaglighet, digital rekryteringskanal och en extremt ung målgrupp — samtliga faktorer som bedöms bli allt vanligare i framtidens rekryteringslandskap.</p>
+        <div class="case-meta">
+          <span class="case-tag red">IRGC</span>
+          <span class="case-tag">Social media-rekrytering</span>
+          <span class="case-tag gold">Walk-in</span>
+          <span class="case-tag">Missnöjesdriven</span>
+        </div>
+      </div>
+
+      <div class="case-card">
+        <div class="case-num">Fall 46 <span class="case-country">Tyskland</span></div>
+        <h3>Elektriker i Bundestag skapar minnesenhet av planritningar</h3>
+        <p>En tysk elektriker (underhållningsarbetare) dömdes för spionage. Han hade tillgång till samtliga eluttag i Bundestag-byggnaden samt planritningar. Han skapade en minnesenhet med relevanta PDF-filer och sände den till en medarbetare på ryska ambassaden i Berlin. Fallet exemplifierar "specialisten" som typologi: en individ utan traditionell klassificerad tjänst vars yrkesmässiga tillgång ger underrättelsevärde. Infrastrukturens sårbarhet via upphandlare och underhållspersonal är ett återkommande tema i intervjuerna.</p>
+        <div class="case-meta">
+          <span class="case-tag red">Ryssland</span>
+          <span class="case-tag gold">Specialist</span>
+          <span class="case-tag">Infrastruktur</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 09: SLUTSATSER -->
+  <section id="slutsatser">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2 class="section-title">Slutsatser och analytisk bedömning</h2>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p>Rapporten identifierar ett antal strukturella slutsatser som bär direkt relevans för säkerhetsstrateger, kontraunderrättelseaktörer och säkerhetsansvariga i kritisk infrastruktur.</p>
+        <p>Det kanske viktigaste fyndet är att hotbilden mot insiderspionage inte kan reduceras till den klassiska insiderprofilen. Rekryteringspoolen har vidgats dramatiskt — från militärofficerare och underrättelsetjänstemän till underhållspersonal, tolkar, akademiker, gränssmugglare och ungdomar som reagerar på Telegram-annonser. Varje person med tillgång till värdefull information eller värdefull fysisk miljö är potentiellt rekryteringsbar.</p>
+        <p>Digitaliseringen har inte ersatt klassisk HUMINT — den har lagt ytterligare lager ovanpå. Rekryteringslådan töms inte; den fylls på.</p>
+      </div>
+      <div>
+        <p>Konviktionsdata är en dålig proxy för spionageaktivitet. Att ett land har noll konviktioner signalerar inte att det är spionagefritt — det kan signalera avsaknad av kontraunderrättelsekapacitet, politisk preferens för diplomatisk hantering, eller att lagstiftningsramverket inte är anpassat för moderna spionagefall.</p>
+        <p>Sveriges tre fall i materialet ska läsas mot bakgrund av att landet 2024 gick med i NATO och att rysk underrättelsetjänst bedöms ha riktat om delar av sin kapacitet mot Norden och Baltikum. Sammantaget talar strukturella faktorer för att fler svenska fall kan förväntas i de närmaste åren — men att processuella och rättsliga faktorer innebär att konviktionstakten kan förbli stabil.</p>
+      </div>
+    </div>
+
+    <div class="findings-box">
+      <h3>Svensk OSINT — analytiska iakttagelser</h3>
+      <p>Baserat på rapporten identifieras följande implikationer för nordisk och svensk kontext:</p>
+      <ul class="findings-list">
+        <li>NATO-anslutningen 2024 innebär att Sverige nu utgör ett primärt underrättelsemål för GRU, FSB och SVR — inte enbart som transitland för väststöd till Ukraina utan som aktiv allianspartner med militärt och politiskt underrättelseintresse.</li>
+        <li>Rekryteringslandskapet i Sverige domineras — enligt intervjupersoner — av ekonomiska snarare än ideologiska drivkrafter ("du arbetar på SAAB och behöver pengar — du vet att du kan vända dig till Ryssland").</li>
+        <li>Kriminella nätverk används av Iran mot Sverige: koppling till Foxtrot-gänget nämns explicit av en svensk åklagare. Tillgången till Swish-transaktionsdata via kriminella nätverk skapar rekryteringsytor som sträcker sig långt bortom traditionella säkerhetszoner.</li>
+        <li>Infrastrukturspionage är underskattad. Leverantörsled, underhållspersonal och IT-konsulter med tillgång till kritisk infrastruktur är attraktiva mål som sällan inkluderas i traditionella insiderthreat-program.</li>
+        <li>Social media-rekrytering via Telegram, LinkedIn och dating-appar är dokumenterad och aktiv. Varje exponering av personaldata (från intrång eller offentliga register) skapar potentiella rekryteringslistor.</li>
+        <li>"Engångsbara" spioner i gig-ekonomisk modell — okrypterade, lättrekryterade, utan nationell koppling till operationsområdet — är svåra att detektera i förhand och komplicerar attributionsarbetet.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">Svensk OSINT</div>
+      <div class="footer-disclaimer">
+        Denna sida är producerad av Svensk OSINT som en analytisk genomgång av FOI-rapporten "Spies Among Us: Espionage in Europe" (FOI-R--5866--SE, januari 2026).<br><br>
+        Rapporten är publicerad av Totalförsvarets forskningsinstitut (FOI) på uppdrag av Säkerhetspolisen, FRA och MUST. Alla fallbeskrivningar och citat är baserade på rapportens öppna material. Illustrerat av Svensk OSINT — volontärdrivet analytiskt OSINT-projekt.<br><br>
+        Svensk OSINT är ett ideellt projekt utan kommersiella intressen. Materialet är avsett för utbildnings- och analyssyften.
+      </div>
+    </div>
+    <div class="footer-links">
+      <div style="color:rgba(245,240,232,0.35); font-size:10px; letter-spacing:0.15em; text-transform:uppercase; margin-bottom:12px;">Källhänvisningar</div>
+      <a href="#">FOI-R--5866--SE — Fullständig rapport</a>
+      <a href="#">Jonsson &amp; Gustafsson (2022) — Föregående studie</a>
+      <a href="#">SÄPO Årsbok 2024</a>
+      <a href="#">Bundesamt für Verfassungsschutz 2025</a>
+      <a href="#">OCCRP — Telegram-rekrytering i Europa</a>
+      <br>
+      <div style="color:rgba(245,240,232,0.35); font-size:10px; letter-spacing:0.15em; text-transform:uppercase; margin-bottom:12px; margin-top:8px;">Svensk OSINT</div>
+      <a href="#">LinkedIn · Svensk OSINT</a>
+      <a href="#">Veckobrevet — prenumerera</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
